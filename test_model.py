@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 import tensorflow as tf
-print(tf.__version__)
+tf.get_logger().setLevel('ERROR')
 from tensorflow.keras.preprocessing.image import img_to_array
 
 # Load the trained model
@@ -31,7 +31,7 @@ def predict_waste_category(frame):
 # Use laptop's inbuilt camera for testing
 def test_with_camera():
     cap = cv2.VideoCapture(1)  # Open webcam (0 is the default camera)
-    print("Press 'q' to quit.")
+    
 
     while True:
         ret, frame = cap.read()  # Read a frame
@@ -41,15 +41,17 @@ def test_with_camera():
 
         # Predict waste category
         predicted_class_name, confidence = predict_waste_category(frame)
-
+        print(predicted_class_name, confidence)
         # Display predictions on the frame
         text = f"{predicted_class_name} ({confidence:.2f}%)"
         cv2.putText(frame, text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow('Plastic Waste Detection', frame)  # Show the frame
 
         # Break the loop on 'q' key press
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
             break
+
 
     cap.release()  # Release the camera
     cv2.destroyAllWindows()  # Close all OpenCV windows
