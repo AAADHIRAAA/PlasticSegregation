@@ -1,8 +1,10 @@
 import numpy as np
 import tensorflow as tf 
+from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
 from tensorflow.keras.models import Model
+from tensorflow.keras.callbacks import ReduceLROnPlateau,ModelCheckpoint
 import os
 
 # Set paths for training and validation data
@@ -15,7 +17,7 @@ class_names = ['recyclable', 'nonrecyclable', 'nonplastics']
 # Image data augmentation and preprocessing
 train_datagen = ImageDataGenerator(
     rescale=1./255,
-    rotation_range=30,
+    rotation_range=40,
     width_shift_range=0.2,
     height_shift_range=0.2,
     shear_range=0.2,
@@ -27,7 +29,7 @@ train_datagen = ImageDataGenerator(
 validation_datagen = ImageDataGenerator(rescale=1./255)
 
 # Generate batches of data
-batch_size = 16
+batch_size = 8
 train_generator = train_datagen.flow_from_directory(
     train_dir,
     target_size=(224, 224),
@@ -55,6 +57,7 @@ base_model = tf.keras.applications.MobileNetV3Large(
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
 x = Dense(1024, activation='relu')(x)
+x = Dropout(0.5)(x)
 output_layer = Dense(len(class_names), activation='softmax')(x)
 
 # Combine base model and custom layers
@@ -73,13 +76,25 @@ model.compile(
 
 # Train the model
 print("Training the model...")
-initial_epochs = 5
+initial_epochs = 10
+fine_tune_epochs = 20
+total_epochs = initial_epochs + fine_tune_epochs
+lr_scheduler = ReduceLROnPlateau(
+    monitor='val_loss', factor=0.5, patience=3, verbose=1, min_lr=1e-6
+)
+
+# Set up checkpoint to save the best model based on validation accuracy
+checkpoint = ModelCheckpoint(
+    'best_model.keras', monitor='val_accuracy', save_best_only=True, verbose=1
+)
+
 history = model.fit(
     train_generator,
     steps_per_epoch=train_generator.samples // batch_size,
     epochs=initial_epochs,
     validation_data=validation_generator,
-    validation_steps=validation_generator.samples // batch_size
+    validation_steps=validation_generator.samples // batch_size,
+    callbacks=[lr_scheduler, checkpoint]
 )
 
 # Unfreeze some layers for fine-tuning
@@ -95,14 +110,16 @@ model.compile(
 
 # Fine-tune the model
 print("Fine-tuning the model...")
-fine_tune_epochs = 10
-total_epochs = initial_epochs + fine_tune_epochs
+
+
+
 history_fine_tuning = model.fit(
     train_generator,
     steps_per_epoch=train_generator.samples // batch_size,
     epochs=total_epochs,
     validation_data=validation_generator,
-    validation_steps=validation_generator.samples // batch_size
+    validation_steps=validation_generator.samples // batch_size,
+    callbacks=[lr_scheduler, checkpoint]
 )
 
 # Save the trained model
