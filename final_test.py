@@ -59,27 +59,27 @@ def test_with_camera():
         contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 5000]
 
-        if object_detected and large_contours:
+        if  large_contours:
             predicted_class_name, confidence = classification_sequence[frame_count % len(classification_sequence)]
             frame_count += 1
 
             print(predicted_class_name, confidence)
 
-            # Display classification result on the frame
+        
             text = f"{predicted_class_name} ({confidence:.2f}%)"
             cv2.putText(frame, text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
             cv2.imshow('Plastic Waste Detection', frame)
 
-            # Wait for 2 seconds to avoid rapid re-detection
+            
             cv2.waitKey(2000)
 
-        cv2.imshow('Plastic Waste Detection', frame)
+            cv2.imshow('Plastic Waste Detection', frame)
 
-        # Break loop on 'q' key press
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
+            # Break loop on 'q' key press
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
 
     cap.release()
     cv2.destroyAllWindows()
